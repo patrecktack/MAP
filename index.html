@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticino Map - No Legend Background</title>
+    <title>Ticino Map - Desktop Final</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -15,6 +15,16 @@
             background-color: #0f172a; font-family: 'Inter', sans-serif;
             color: #f8fafc; overflow: hidden; display: flex;
             justify-content: center; align-items: center; position: relative;
+        }
+
+        /* --- FIX RIGHE BIANCHE TRA I QUADRATI DELLA MAPPA --- */
+        .leaflet-tile-container img {
+            width: 100.5% !important;
+            height: 100.5% !important;
+            margin: -0.5px !important;
+        }
+        .leaflet-container { 
+            background-color: #0f172a !important; 
         }
 
         /* CONTAINER MAPPA (Modalità Poster) */
@@ -30,19 +40,19 @@
             border-radius: 0; border: none;
         }
 
-        /* STILI VETRO CONDIVISI (Usato solo a destra ora) */
+        /* STILI VETRO CONDIVISI (Usato solo a destra) */
         .glass-panel {
             background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border-radius: 16px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); pointer-events: auto;
         }
 
-        /* PANNELLO SINISTRO (Senza sfondo) */
+        /* PANNELLO SINISTRO (Testo e Legenda senza sfondo) */
         .ui-left { position: absolute; left: 5%; bottom: 5%; z-index: 2; pointer-events: none; }
         .tm-title { font-size: 4rem; font-weight: 800; margin: 0 0 10px 0; line-height: 1.1; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .tm-subtitle { font-size: 1.1rem; color: #94a3b8; margin-bottom: 30px; max-width: 350px; line-height: 1.6; }
         
-        .legend-box { width: 320px; } /* Tolto il padding e il background */
+        .legend-box { width: 320px; } 
         .legend-title { text-transform: uppercase; letter-spacing: 1.5px; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 20px; }
         .legend-item { display: flex; align-items: center; margin-bottom: 16px; font-size: 1.05rem; color: #e2e8f0; }
         .legend-item:last-child { margin-bottom: 0; }
