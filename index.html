@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ticino Map - Mobile Bulletproof</title>
+    <title>Ticino Map - Ultimate Fix</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -21,10 +21,10 @@
             margin: 0; padding: 0; width: 100%; height: 100%;  
             background-color: var(--bg-dark); font-family: 'Inter', sans-serif;
             color: #f8fafc; overflow: hidden;
-            overscroll-behavior: none; /* Blocca il rimbalzo su iOS */
+            overscroll-behavior: none; 
         }
 
-        /* FIX RIGHE BIANCHE E SFONDO LEAFLET */
+        /* FIX RIGHE E SFONDO LEAFLET */
         .leaflet-tile-container img { width: 100.5% !important; height: 100.5% !important; margin: -0.5px; }
         .leaflet-container { background: var(--bg-dark) !important; }
 
@@ -78,11 +78,10 @@
 
         /* 📱 MOBILE FIX ASSOLUTO */
         @media (max-width: 768px) {
-            .app-wrapper { display: block; } /* Rimuove il flexbox che confonde Safari */
+            .app-wrapper { display: block; } 
             #map { 
                 width: 100vw !important; 
-                height: 100vh !important; 
-                height: 100dvh !important; /* DVH per risolvere la barra degli indirizzi di iOS */
+                height: 100dvh !important; /* dVH essenziale per Safari */
                 max-width: none !important; 
                 border-radius: 0 !important; 
                 border: none !important; 
@@ -121,33 +120,29 @@
 </div>
 
 <script>
-    // Inizializzazione immediata (niente attese che causano crash neri)
+    // 1. Inizializzazione immediata
     var map = L.map('map', { 
+        zoomSnap: 0.01,         // REINSERITO: Permette zoom fluidi per riempire bene il poster
+        minZoom: 7,             // REINSERITO: Previene errori "schermo nero" con i server Swisstopo
         zoomControl: false, 
         doubleClickZoom: false 
-        // RIMOSSO zoomSnap per compatibilità totale con Swisstopo su schermi Retina
     });
 
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    var topo = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe-pk200.noscale/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
-    var satellite = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
+    // 2. Livelli Swisstopo con limiti corretti
+    var topo = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe-pk200.noscale/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18, minZoom: 7 });
+    var satellite = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18, minZoom: 7 });
 
     topo.addTo(map);
-
-    // Diamo una coordinata fissa iniziale per costringere il download delle immagini!
-    map.setView([46.2, 8.8], 9);
 
     var boundsTI = [[45.81, 8.40], [46.63, 9.15]];
     var boundsCH = [[45.8, 5.9], [47.8, 10.5]];
 
-    // Dopo un attimo, inquadriamo bene il Ticino ricalcolando le dimensioni finali del telefono
-    setTimeout(function() {
-        map.invalidateSize();
-        map.fitBounds(boundsTI);
-    }, 200);
+    // Centriamo subito il Ticino
+    map.fitBounds(boundsTI);
 
-    // Eventi UI
+    // 3. Eventi UI
     L.DomEvent.disableClickPropagation(document.querySelector('.ui-right-toolbar'));
     L.DomEvent.disableScrollPropagation(document.querySelector('.ui-right-toolbar'));
 
@@ -161,14 +156,14 @@
 
     var userMarker;
     document.getElementById('go-geo').onclick = function() {
-        map.locate({setView: true, maxZoom: 13});
+        map.locate({setView: true, maxZoom: 12});
     };
     map.on('locationfound', (e) => {
         if(userMarker) map.removeLayer(userMarker);
         userMarker = L.circleMarker(e.latlng, {radius: 8, color: 'white', fillColor: '#38bdf8', fillOpacity: 1}).addTo(map);
     });
 
-    // Finto schermo intero (Doppio tap)
+    // 4. Finto schermo intero (Mobile Doppio tap)
     var wrapper = document.getElementById('app-wrapper');
     var isMobile = window.innerWidth < 768;
     var lastTap = 0;
@@ -185,9 +180,13 @@
         lastTap = now;
     });
 
+    // Sicurezza al ridimensionamento
     window.addEventListener('resize', () => {
-        setTimeout(() => map.invalidateSize(true), 300);
+        setTimeout(() => map.invalidateSize(true), 100);
     });
+    
+    // Colpo di grazia per assicurarsi che i tile si carichino
+    setTimeout(() => map.invalidateSize(true), 100);
 </script>
 
 </body>
