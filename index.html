@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticino Map - Desktop Solid</title>
+    <title>Ticino Map - No Legend Background</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -19,7 +19,7 @@
 
         /* CONTAINER MAPPA (Modalità Poster) */
         #map { 
-            height: 90vh; width: 60vh; /* Proporzioni fisse per Desktop */
+            height: 90vh; width: 60vh; 
             border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 1; transition: all 0.3s ease; position: relative;
@@ -30,18 +30,19 @@
             border-radius: 0; border: none;
         }
 
-        /* STILI VETRO CONDIVISI */
+        /* STILI VETRO CONDIVISI (Usato solo a destra ora) */
         .glass-panel {
             background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border-radius: 16px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); pointer-events: auto;
         }
 
-        /* PANNELLO SINISTRO */
+        /* PANNELLO SINISTRO (Senza sfondo) */
         .ui-left { position: absolute; left: 5%; bottom: 5%; z-index: 2; pointer-events: none; }
         .tm-title { font-size: 4rem; font-weight: 800; margin: 0 0 10px 0; line-height: 1.1; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .tm-subtitle { font-size: 1.1rem; color: #94a3b8; margin-bottom: 30px; max-width: 350px; line-height: 1.6; }
-        .legend-box { padding: 30px; width: 320px; }
+        
+        .legend-box { width: 320px; } /* Tolto il padding e il background */
         .legend-title { text-transform: uppercase; letter-spacing: 1.5px; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 20px; }
         .legend-item { display: flex; align-items: center; margin-bottom: 16px; font-size: 1.05rem; color: #e2e8f0; }
         .legend-item:last-child { margin-bottom: 0; }
@@ -92,7 +93,7 @@
         <h1 class="tm-title">Canton<br>Ticino</h1>
         <p class="tm-subtitle">Carta topografica nazionale svizzera. <b>Clicca 3 volte sulla mappa per lo schermo intero.</b></p>
         
-        <div class="glass-panel legend-box">
+        <div class="legend-box">
             <div class="legend-title">Legenda Cartografica</div>
             <div class="legend-item"><div class="color-line" style="background-color: #f29b46; border: 1px solid #d43b1c;"></div> Autostrada</div>
             <div class="legend-item"><div class="color-line" style="background-color: #e33030;"></div> Strada principale</div>
@@ -123,32 +124,27 @@
     </div>
 
 <script>
-    // 1. Inizializzazione Mappa solida per Desktop
     var map = L.map('map', { 
-        zoomSnap: 0.01,         // Permette uno zoom preciso
-        minZoom: 7,             // Limite corretto per i server Swisstopo
+        zoomSnap: 0.01,         
+        minZoom: 7,             
         zoomControl: false, 
-        doubleClickZoom: false  // Disabilitato per non interferire col triplo click
+        doubleClickZoom: false  
     });
 
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Blocca i click sui menu
     L.DomEvent.disableClickPropagation(document.querySelector('.ui-right-toolbar'));
     L.DomEvent.disableScrollPropagation(document.querySelector('.ui-right-toolbar'));
 
-    // 2. Livelli Swisstopo
     var topo = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe-pk200.noscale/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18, minZoom: 7 });
     var satellite = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18, minZoom: 7 });
     
     topo.addTo(map);
 
-    // 3. Posizioni di Base
     var boundsTI = [[45.81, 8.40], [46.63, 9.15]];
     var boundsCH = [[45.8, 5.9], [47.8, 10.5]];
     map.fitBounds(boundsTI);
 
-    // 4. Logica Strumenti
     document.getElementById('satToggle').onchange = function(e) {
         if(e.target.checked) {
             map.removeLayer(topo); satellite.addTo(map);
@@ -176,7 +172,6 @@
         ]).addTo(map);
     });
 
-    // 5. VERO Schermo Intero da PC (3 Click sulla mappa)
     var mapElement = document.getElementById('map');
     map.on('click', function(e) {
         if (e.originalEvent.detail === 3) {
@@ -188,7 +183,6 @@
         }
     });
 
-    // Ricalcolo al cambio schermo intero
     document.addEventListener('fullscreenchange', function() {
         setTimeout(function() {
             map.invalidateSize(); 
