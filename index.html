@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ticino Map - Final Fix</title>
+    <title>Ticino Map - The Real Fix</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -23,13 +23,7 @@
             color: #f8fafc; overflow: hidden;
         }
 
-        /* FIX RIGHE E CARICAMENTO VUOTO */
-        .leaflet-tile-container img {
-            width: 100.5% !important;
-            height: 100.5% !important;
-            margin: -0.5px;
-        }
-        /* Forza uno sfondo scuro durante il caricamento per non accecare */
+        .leaflet-tile-container img { width: 100.5% !important; height: 100.5% !important; margin: -0.5px; }
         #map { background: var(--bg-dark) !important; }
 
         .app-wrapper {
@@ -44,7 +38,6 @@
             z-index: 1;
         }
 
-        /* MODALITÀ FULLSCREEN (Attivata da JS) */
         .force-fullscreen #map {
             position: fixed !important; top: 0 !important; left: 0 !important;
             width: 100vw !important; height: 100vh !important; max-width: none !important;
@@ -132,63 +125,69 @@
 </div>
 
 <script>
-    // 1. Inizializzazione RITARDATA per evitare il "Bianco"
-    var map;
-    var topo = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe-pk200.noscale/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
-    var satellite = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
+    // Tutto il codice Javascript è "impacchettato" qui dentro e aspetta che la pagina sia pronta
+    setTimeout(function() {
+        
+        var map = L.map('map', { 
+            zoomSnap: 0.1, 
+            zoomControl: false, 
+            doubleClickZoom: false 
+        });
 
-    window.onload = function() {
-        setTimeout(function() {
-            map = L.map('map', { 
-                zoomSnap: 0.1, 
-                zoomControl: false, 
-                doubleClickZoom: false // Cruciale per evitare crash su doppio tap
-            });
+        L.control.zoom({ position: 'topright' }).addTo(map);
 
-            topo.addTo(map);
-            var boundsTI = [[45.81, 8.40], [46.63, 9.15]];
-            map.fitBounds(boundsTI);
-            
-            // Forza il ricalcolo delle dimensioni
-            map.invalidateSize(true);
-        }, 300);
-    };
+        var topo = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe-pk200.noscale/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
+        var satellite = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
 
-    // 2. Toolbar logic
-    L.DomEvent.disableClickPropagation(document.querySelector('.ui-right-toolbar'));
+        topo.addTo(map);
+        var boundsTI = [[45.81, 8.40], [46.63, 9.15]];
+        var boundsCH = [[45.8, 5.9], [47.8, 10.5]];
+        map.fitBounds(boundsTI);
 
-    document.getElementById('satToggle').onchange = function(e) {
-        if(e.target.checked) { map.removeLayer(topo); satellite.addTo(map); }
-        else { map.removeLayer(satellite); topo.addTo(map); }
-    };
+        // Disabilita click sulla toolbar
+        L.DomEvent.disableClickPropagation(document.querySelector('.ui-right-toolbar'));
+        L.DomEvent.disableScrollPropagation(document.querySelector('.ui-right-toolbar'));
 
-    document.getElementById('go-ti').onclick = () => map.fitBounds([[45.81, 8.40], [46.63, 9.15]]);
-    document.getElementById('go-ch').onclick = () => map.fitBounds([[45.8, 5.9], [47.8, 10.5]]);
+        // Pulsante Satellite
+        document.getElementById('satToggle').onchange = function(e) {
+            if(e.target.checked) { map.removeLayer(topo); satellite.addTo(map); }
+            else { map.removeLayer(satellite); topo.addTo(map); }
+        };
 
-    // 3. Localizzazione
-    var userMarker;
-    document.getElementById('go-geo').onclick = function() {
-        map.locate({setView: true, maxZoom: 12});
-    };
-    map.on('locationfound', (e) => {
-        if(userMarker) map.removeLayer(userMarker);
-        userMarker = L.circleMarker(e.latlng, {radius: 8, color: 'white', fillColor: '#38bdf8', fillOpacity: 1}).addTo(map);
-    });
+        // Pulsanti Bandiere
+        document.getElementById('go-ti').onclick = () => map.fitBounds(boundsTI);
+        document.getElementById('go-ch').onclick = () => map.fitBounds(boundsCH);
 
-    // 4. FIX DOPPIO TAP (Niente crash, solo fullscreen)
-    var wrapper = document.getElementById('app-wrapper');
-    var lastTap = 0;
-    document.getElementById('map').addEventListener('touchstart', function(e) {
-        var now = new Date().getTime();
-        var timesince = now - lastTap;
-        if ((timesince < 300) && (timesince > 0)) {
-            wrapper.classList.toggle('force-fullscreen');
-            setTimeout(() => map.invalidateSize(true), 200);
-        }
-        lastTap = now;
-    });
+        // Localizzazione
+        var userMarker;
+        document.getElementById('go-geo').onclick = function() {
+            map.locate({setView: true, maxZoom: 12});
+        };
+        map.on('locationfound', (e) => {
+            if(userMarker) map.removeLayer(userMarker);
+            userMarker = L.circleMarker(e.latlng, {radius: 8, color: 'white', fillColor: '#38bdf8', fillOpacity: 1}).addTo(map);
+        });
 
-    window.addEventListener('resize', () => map.invalidateSize());
+        // Doppio Tap per Fullscreen CSS
+        var wrapper = document.getElementById('app-wrapper');
+        var lastTap = 0;
+        document.getElementById('map').addEventListener('touchstart', function(e) {
+            var now = new Date().getTime();
+            var timesince = now - lastTap;
+            if ((timesince < 300) && (timesince > 0)) {
+                wrapper.classList.toggle('force-fullscreen');
+                setTimeout(() => map.invalidateSize(true), 200);
+            }
+            lastTap = now;
+        });
+
+        // Resize
+        window.addEventListener('resize', () => map.invalidateSize());
+        
+        // Forza un ricalcolo di sicurezza iniziale
+        setTimeout(() => map.invalidateSize(true), 100);
+
+    }, 150); // Piccola pausa di sicurezza di 150 millisecondi
 </script>
 
 </body>
