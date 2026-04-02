@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ticino Map - Mobile Optimized</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --accent-map: #38bdf8;
+            --accent-sat: #10b981;
+            --glass: rgba(30, 41, 59, 0.7);
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: var(--bg-dark);
+            font-family: 'Inter', sans-serif;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+
+        /* CONTAINER PRINCIPALE */
+        .app-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* LA MAPPA (POSTER) */
+        #map {
+            height: 90vh;
+            width: 90vw;
+            max-width: 500px;
+            /* Mantiene la forma verticale su desktop */
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* FULLSCREEN MOBILE */
+        #map:fullscreen {
+            width: 100vw;
+            height: 100vh;
+            max-width: none;
+            border-radius: 0;
+        }
+
+        /* UI SINISTRA (Titoli e Legenda) - Si nasconde su Mobile */
+        .ui-left {
+            position: absolute;
+            left: 5%;
+            bottom: 5%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .tm-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tm-subtitle {
+            color: #94a3b8;
+            margin: 10px 0 20px 0;
+            max-width: 300px;
+            font-size: 0.9rem;
+        }
+
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            pointer-events: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .legend-box {
+            padding: 20px;
+            width: 250px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        .color-line {
+            width: 25px;
+            height: 4px;
+            border-radius: 2px;
+            margin-right: 12px;
+        }
+
+        /* TOOLBAR DESTRA (Sempre visibile, adattiva) */
+        .ui-right-toolbar {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* SLIDER VERTICALE */
+        .v-switch-box {
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sw-label {
+            font-size: 0.7rem;
+            font-weight: 900;
+            color: #64748b;
+        }
+
+        .sw-container {
+            position: relative;
+            width: 30px;
+            height: 70px;
+        }
+
+        .sw-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .sw-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--accent-map);
+            border-radius: 20px;
+            transition: 0.4s;
+        }
+
+        .sw-slider:before {
+            content: "";
+            position: absolute;
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.4s;
+        }
+
+        input:checked+.sw-slider {
+            background: var(--accent-sat);
+        }
+
+        input:checked+.sw-slider:before {
+            transform: translateY(-38px);
+        }
+
+        /* PULSANTI */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .m-btn {
+            width: 48px;
+            height: 48px;
+            /* Dimensione ottimale per il pollice */
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .m-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* BANDIERE E ICONE */
+        .f-ti {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            background: linear-gradient(#da291c 50%, #0033a0 50%);
+        }
+
+        .f-ch {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            background: #da291c;
+            position: relative;
+        }
+
+        .f-ch:before {
+            content: "";
+            position: absolute;
+            width: 4px;
+            height: 14px;
+            background: white;
+            left: 10px;
+            top: 5px;
+        }
+
+        .f-ch:after {
+            content: "";
+            position: absolute;
+            width: 14px;
+            height: 4px;
+            background: white;
+            left: 5px;
+            top: 10px;
+        }
+
+        .geo-target {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent-map);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .geo-target:after {
+            content: "";
+            width: 6px;
+            height: 6px;
+            background: var(--accent-map);
+            border-radius: 50%;
+        }
+
+        /* 📱 OTTIMIZZAZIONE MOBILE (Sotto i 768px) */
+        @media (max-width: 768px) {
+            #map {
+                width: 95vw;
+                height: 80vh;
+                max-width: none;
+            }
+
+            .ui-left {
+                display: none;
+            }
+
+            /* Nasconde legenda ingombrante */
+            .ui-right-toolbar {
+                right: 10px;
+                scale: 0.9;
+            }
+
+            /* Toolbar un po' più piccola */
+        }
+
+        .leaflet-control-attribution {
+            font-size: 9px !important;
+            background: rgba(255, 255, 255, 0.7) !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-wrapper">
+
+        <div class="ui-left">
+            <h1 class="tm-title">Ticino</h1>
+            <p class="tm-subtitle">Mappa ufficiale Swisstopo.<br>Progettata per Mobile & Web.</p>
+            <div class="glass-panel legend-box">
+                <div class="legend-item">
+                    <div class="color-line" style="background:#f29b46"></div> Autostrada
+                </div>
+                <div class="legend-item">
+                    <div class="color-line" style="background:#e33030"></div> Strada principale
+                </div>
+                <div class="legend-item">
+                    <div class="color-line"
+                        style="background: repeating-linear-gradient(90deg, #99245c, #99245c 4px, transparent 4px, transparent 8px)">
+                    </div> Confine
+                </div>
+            </div>
+        </div>
+
+        <div id="map">
+            <div class="ui-right-toolbar">
+                <div class="glass-panel v-switch-box">
+                    <span class="sw-label" id="l-sat">SAT</span>
+                    <label class="sw-container">
+                        <input type="checkbox" id="satToggle">
+                        <span class="sw-slider"></span>
+                    </label>
+                    <span class="sw-label" id="l-map" style="color:var(--accent-map)">MAP</span>
+                </div>
+
+                <div class="glass-panel btn-group">
+                    <button class="m-btn" id="go-geo">
+                        <div class="geo-target"></div>
+                    </button>
+                    <button class="m-btn" id="go-ti">
+                        <div class="f-ti"></div>
+                    </button>
+                    <button class="m-btn" id="go-ch">
+                        <div class="f-ch"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Inizializzazione
+        var map = L.map('map', { zoomSnap: 0.1, zoomControl: false, doubleClickZoom: true });
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Impedisce alla mappa di muoversi quando tocchi i tasti
+        L.DomEvent.disableClickPropagation(document.querySelector('.ui-right-toolbar'));
+
+        // Layer Swisstopo
+        var topo = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe-pk200.noscale/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
+        var satellite = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg', { attribution: 'swisstopo', maxZoom: 18 });
+
+        topo.addTo(map);
+
+        // Toggle Mappa/Sat
+        document.getElementById('satToggle').onchange = function (e) {
+            if (e.target.checked) {
+                map.removeLayer(topo); satellite.addTo(map);
+                document.getElementById('l-sat').style.color = 'var(--accent-sat)';
+                document.getElementById('l-map').style.color = '#64748b';
+            } else {
+                map.removeLayer(satellite); topo.addTo(map);
+                document.getElementById('l-map').style.color = 'var(--accent-map)';
+                document.getElementById('l-sat').style.color = '#64748b';
+            }
+        };
+
+        // Navigazione
+        var boundsTI = [[45.81, 8.40], [46.63, 9.15]];
+        var boundsCH = [[45.8, 5.9], [47.8, 10.5]];
+        map.fitBounds(boundsTI);
+
+        document.getElementById('go-ti').onclick = () => map.fitBounds(boundsTI);
+        document.getElementById('go-ch').onclick = () => map.fitBounds(boundsCH);
+
+        // Localizzazione
+        var userLoc = null;
+        document.getElementById('go-geo').onclick = function () {
+            if (userLoc) map.flyTo(userLoc, 12);
+            else map.locate({ setView: true, maxZoom: 12 });
+        };
+        map.on('locationfound', (e) => {
+            userLoc = e.latlng;
+            L.circleMarker(e.latlng, { radius: 8, color: 'white', fillColor: '#38bdf8', fillOpacity: 1 }).addTo(map);
+        });
+
+        // Fullscreen (Triple click per PC, gestito auto su mobile tramite API browser)
+        var mapEl = document.getElementById('map');
+        map.on('click', (e) => {
+            if (e.originalEvent.detail === 3) {
+                if (!document.fullscreenElement) mapEl.requestFullscreen();
+                else document.exitFullscreen();
+            }
+        });
+
+        // Fix per resize e rotazione smartphone
+        window.addEventListener('resize', () => {
+            setTimeout(() => map.invalidateSize(), 200);
+        });
+    </script>
+
+</body>
+
+</html>
